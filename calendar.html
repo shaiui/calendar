@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<style>
+body,html { width:100%; height:100%; margin:0; padding:0; font-family:Arial }
+
+.cal-box {
+outline:none;margin-top:20px;margin-left:20px;border:1px solid #555;height:50px;width:250px;padding:5px;line-height:50px;font-size:16px;user-select:none;
+}
+.cal-box:hover {
+    background:#eee; cursor:pointer;
+}
+
+.cal-icon { margin-left:5px; display: inline-block; width:30px; height:100%; padding-top: 3px; position:relative; top:3px }
+
+.cal-date { display: inline-block; height:100%; }
+
+</style>
+</head>
+
+<body>
+
+<!-- the calendar icon -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0" y="0" width="20" height="20" style='display:none'>
+  <symbol id="cal" viewBox="0, 0, 200, 200">
+    <path d="M11.186,63.471 L189.107,63.471 L189.107,183.714 L11.186,183.714 L11.186,63.471 z" fill-opacity="0" stroke="#000000" stroke-width="15"/>
+    <path d="M29.708,81.267 L68.124,81.267 L68.124,118.514 L29.708,118.514 L29.708,81.267 z" fill="#000000"/>
+    <path d="M2.991,24.667 L196.81,24.667 L196.81,51.601 L2.991,51.601 L2.991,24.667 z" fill="#000000"/>
+    <path d="M86.956,81.267 L125.372,81.267 L125.372,118.514 L86.956,118.514 L86.956,81.267 z" fill="#000000"/>
+    <path d="M29.708,128.784 L68.124,128.784 L68.124,166.031 L29.708,166.031 L29.708,128.784 z" fill="#000000"/>
+    <path d="M41.782,7.197 L64.674,7.197 L64.674,38.992 L41.782,38.992 L41.782,7.197 z" fill="#000000"/>
+    <path d="M139.36,7.197 L162.252,7.197 L162.252,38.992 L139.36,38.992 L139.36,7.197 z" fill="#000000"/>
+  </symbol>
+</svg>
+
+<!-- this is where the calender inserts itself -->
+<div id='container' style='position:absolute;left:0px;top:0px;width:350px;height:350px'>
+</div>
+
+<div onclick='showCal(this)' class='cal-box'>
+    <div class='cal-icon'>
+        <svg width='22' height='22'><use href='#cal'></use></svg>
+    </div>
+    <div class='cal-date'>Pick Date</div>
+</div>
+
+
+<div onclick='showCal(this)' class='cal-box'>
+    <div class='cal-icon'>
+        <svg width='22' height='22'><use href='#cal'></use></svg>
+    </div>
+    <div class='cal-date'>Pick Date</div>
+</div>
+
+
+<script>
+
+
+function Calendar(o) {
+    
+    var days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    
+    var monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    /* notice this is a part of window */    
+    window.getCal = function(elem) {
+        var cal = elem.closest('.cal-container');
+        return cal.myObj;
+    }
+    
+    this.changeMonth = function(dir) {
+        
+        if (dir)
+            this.currentDate.setMonth(this.currentDate.getMonth()+1);
+        else
+            this.currentDate.setMonth(this.currentDate.getMonth()-1);
+        
+        this.drawDays();
+        this.drawLabel();    
+    }
+
+    this.dayClicked = function(day) {
+        
+        var d = this.currentDate;
+        var monthName = d.getMonth() + 1;
+        var fullYear = d.getFullYear();
+        
+        var dateStr = monthName + '/' + day + '/' + fullYear;
+        
+        this.calBox.querySelector('.cal-date').innerHTML = dateStr;
+        this.hide();
+    }
+    
+    this.hide = function() {
+        this.elem.style.display = 'none';
+    }
+    
+    this.show = function(calBox) {
+        this.elem.style.display = 'block';
+        this.calBox = calBox;
+    
+        var topPos = calBox.getBoundingClientRect().top + window.scrollY;
+        var leftPos = calBox.getBoundingClientRect().left + window.scrollX;
+        
+        this.elem.style.top = (topPos + calBox.offsetHeight + 3) + 'px';
+        this.elem.style.left = (leftPos) + 'px';
+        
+        var d = calBox.querySelector('.cal-date').innerHTML;
+        
+        if (d.includes('/')) {
+            this.selectedDate = new Date(d);
+            this.currentDate = new Date(d);
+        }
+        else
+        {
+            this.selectedDate = null;
+            this.currentDate = new Date();
+        }
+            
+        this.drawDays();
+        this.drawLabel();
+            
+        // so that window click event doesn't get called:
+        event.stopPropagation();
+    }
+    
+    this.drawLabel = function() {
+        var d = this.currentDate;
+        
+        var monthName = monthNames[d.getMonth()];
+        var fullYear = d.getFullYear();
+        
+        this.elem.querySelector('.cal-label').innerHTML = monthName + ' ' + fullYear;
+    }
+    
+    
+    this.drawDays = function() {
+        
+        var htmlContent = '';
+        var dayIndex = 0;
+        var startIndex = -1;
+        
+        var d = this.currentDate;
+        d.setDate(1); 
+        
+        var startsOnDay = days[d.getDay()];
+        var boxesToInsert = days.indexOf(startsOnDay);
+        var daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+        
+        var today = new Date();
+        var calBoxDate = null;
+    
+        if (this.calBox)
+            calBoxDate = new Date(this.calBox.innerHTML);
+    
+        for (var i = 0; i < (daysInMonth + boxesToInsert); i++) 
+        {
+            if (i % 7 == 0 && i != 0) {
+                htmlContent += `<br/>`;
+                dayIndex = 0;
+            }
+            
+            var addClass = '';
+            
+            if (today.getMonth() == d.getMonth()
+            && today.getFullYear() == d.getFullYear()
+            && today.getDate() == startIndex) {
+                addClass = ' cal-today';
+            }
+            
+            if (this.selectedDate) {
+                if (this.selectedDate.getMonth() == d.getMonth()
+                && this.selectedDate.getFullYear() == d.getFullYear()
+                && this.selectedDate.getDate() == startIndex) {
+                    addClass = ' cal-selected';
+                }
+            }
+            
+            var currentDay = days[dayIndex];
+            
+            if (startIndex < 0 && currentDay == startsOnDay) {
+                startIndex = 1;
+            }
+            
+            var content = startIndex > 0 ? startIndex : '';
+            
+            if (content) {
+                htmlContent += `<div class='cal-day-box ${addClass}' onclick='getCal(this).dayClicked(this.innerHTML)'>${content}</div>`;
+            }
+            else
+            {
+                htmlContent += `<div class='cal-dummy-box ${addClass}'>${content}</div>`;
+            }
+            
+            dayIndex++;
+            
+            if (startIndex > 0)
+                startIndex++;   
+        }
+        
+        
+        var content = o.elem.querySelector('.cal-content');
+        content.innerHTML = htmlContent;
+    }
+    
+    // gets called as soon as we instantiate the calendar
+    // inserts html into container
+    this.init = function(o) 
+    {
+        var self = this;
+        
+        this.elem = o.elem;
+        this.boxSize = Math.ceil(o.elem.offsetWidth / 7);
+        this.currentDate = new Date();
+        
+        var monthName = monthNames[this.currentDate.getMonth()];
+        
+        var htmlControls = `<div style='text-align:center;line-height:${this.boxSize}px;height:${this.boxSize}px;font-size:1.5em;position:relative;'>
+            
+            <div class='cal-arrow' onclick="getCal(this).changeMonth(false)" style='left:0px;top:0px;'><</div>
+            
+            <div class='cal-label' style='display:inline-block' >${monthName + ' ' + this.currentDate.getFullYear()}</div>
+            
+            <div class='cal-arrow' onclick="getCal(this).changeMonth(true)" style='right:1px;top:0px'>></div>
+            
+        </div>`;
+        
+        var htmlHeader = '';
+        
+        days.forEach(function(day) {
+            htmlHeader += `<div class='cal-header-box'>${day}</div>`;
+        });
+
+        o.elem.myObj = this;
+        o.elem.classList.add("cal-container");
+        o.elem.style.opacity = 0;
+        o.elem.style.boxShadow = '5px 5px 5px rgba(0,0,0.5)';
+        
+        o.elem.addEventListener("click", function() {
+            event.stopPropagation();
+        });
+        
+        window.addEventListener("click", function() {
+            self.hide();
+        });
+        
+        // html 5.2 allows style within the body tag
+        o.elem.innerHTML = `
+            <style>
+                .calendar {
+                padding:5px;
+                padding-top:10px;
+                padding-bottom:${self.boxSize + 10}px;
+                    user-select:none;
+                    background:white;
+                    border:1px solid #555;
+                    border-radius:10px;
+                    font-size:12px;
+                    width:100%;
+                    white-space:nowrap;
+                    height:100%;
+                    font-family:Verdana;
+                    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.3);
+                    position:absolute;
+                    z-index:999;
+                }
+                
+                .cal-header-box {
+                    color:grey;
+                }
+                
+                .cal-arrow {
+                    opacity:0.5;
+                    position:absolute;
+                    width:${self.boxSize}px;
+                    height:${self.boxSize}px;
+                    line-height:${self.boxSize}px;
+                    text-align:center;
+                }
+                .cal-arrow:hover {
+                    background:#eee;
+                    opacity:1;
+                }
+                
+                .cal-content {
+                width:auto;
+                }
+                
+                .cal-today {
+                    background:lightblue !important;
+                }
+                
+                .cal-selected {
+                    border:1px solid lightblue !important;
+                }
+                        
+                .cal-header-box,.cal-dummy-box,.cal-day-box {
+                    display:inline-block;
+                    font-size:1.2em;
+                    width:${self.boxSize}px;
+                    height:${self.boxSize}px;
+                    vertical-align:top;
+                    text-align:center;
+                    line-height:${self.boxSize}px;
+                }
+                
+                .cal-day-box,.cal-label {
+                    font-weight:500;
+                }
+                
+                .cal-day-box:hover {
+                    background:#eee;
+                    color:#4293ad;
+                }
+            </style>
+            
+            <div class='calendar'>
+                ${htmlControls}
+                ${htmlHeader}
+                <div class='cal-content'></div>
+            </div>`;
+            
+        o.elem.style.display = 'none';
+        o.elem.style.opacity = 1;
+    }
+
+    this.init(o);
+    
+}
+
+var cal = new Calendar({ elem:document.getElementById('container') });
+
+function showCal(calBox) {
+    cal.show(calBox);
+}
+
+</script>
+
+</body>
+
+</html>
